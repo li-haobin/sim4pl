@@ -55,6 +55,7 @@ namespace Sim4PL.Model
         public List<Order> OrdersDelivered { get; } = new List<Order>();
         public List<Transporter> Transporters { get; } = new List<Transporter>();
         public double DelayRate { get { return 1.0 * OrdersDelivered.Count(o => o.Delay.TotalDays > 0) / OrdersDelivered.Count; } }
+        public double TimeRatio_Transporting { get { return Transporters.Average(t => t.HourCounter_Transporting.AverageCount); } }
         #endregion
 
         #region Events
@@ -82,6 +83,9 @@ namespace Sim4PL.Model
             public override void Invoke()
             {
                 var transList = This.Transporters.Where(t => t.Phase == Transporter.Statics.Phase.Idle).ToList();
+                
+                /*** Implement dispatching rule here ***/
+                #region Dispatching Rule 
                 if (This.OrdersToAssign.Count > 0 && transList.Count > 0)
                 {
                     Log("Dispatch");
@@ -92,6 +96,7 @@ namespace Sim4PL.Model
                     This.OrdersAssigned.Add(order);
                     Execute(new DispatchEvent());
                 }
+                #endregion
             }
         }
         private class DeliverEvent : InternalEvent
@@ -155,7 +160,7 @@ namespace Sim4PL.Model
             Console.Write("To Assign: ");
             foreach (var o in OrdersToAssign) Console.Write("{0} ", o);
             Console.WriteLine();
-            Console.WriteLine("Delay Rate: {0:F2}%", 100 * DelayRate);
+            Console.WriteLine("Delay Rate: {0:F2}%  Trans. Ratio: {1:F2}%", 100 * DelayRate, 100 * TimeRatio_Transporting);
             Console.WriteLine();
         }
     }

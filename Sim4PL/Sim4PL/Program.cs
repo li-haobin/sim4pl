@@ -15,7 +15,7 @@ namespace Sim4PL
             var config = new Network.Statics
             {
                 NNodes = 3,
-                NTransporters = 8,
+                NTransporters = 10,
                 DemandRates = new double[,] {
                     { 0, 0.5, 0.2 },
                     { 0.3, 0, 0.4 },
@@ -42,7 +42,7 @@ namespace Sim4PL
             sim.Run(TimeSpan.FromSeconds(0));
             while (true)
             {
-                sim.Run(TimeSpan.FromDays(30));
+                sim.Run(TimeSpan.FromDays(365));
                 sim.WriteToConsole();
                 Console.ReadKey();
             }
