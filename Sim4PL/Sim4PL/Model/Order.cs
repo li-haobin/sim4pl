@@ -19,7 +19,16 @@ namespace Sim4PL.Model
         
         #region Dynamics
         public DateTime OrderTime { get; private set; }
-        public DateTime DeliveryTime { get; private set; }
+        public DateTime ExpectedDeliveryTime { get; private set; }
+        public DateTime ActualDeliveryTime { get; private set; }
+        public TimeSpan Delay
+        {
+            get
+            {
+                return ActualDeliveryTime < ExpectedDeliveryTime ?
+                    TimeSpan.FromDays(0) : ActualDeliveryTime - ExpectedDeliveryTime;
+            }
+        }
         #endregion
 
         #region Events
@@ -27,17 +36,25 @@ namespace Sim4PL.Model
 
         private class PlaceEvent : InternalEvent
         {
-            internal DateTime DeliveryTime { get; set; }
+            internal DateTime ExpectedDeliveryTime { get; set; }
             public override void Invoke()
             {
                 This.OrderTime = ClockTime;
-                This.DeliveryTime = DeliveryTime;
+                This.ExpectedDeliveryTime = ExpectedDeliveryTime;
+            }
+        }
+        private class DeliverEvent : InternalEvent
+        {
+            public override void Invoke()
+            {
+                This.ActualDeliveryTime = ClockTime;
             }
         }
         #endregion
 
         #region Input Events - Getters
-        public Event Place(DateTime deliveryTime) { return new PlaceEvent { This = this, DeliveryTime = deliveryTime }; }
+        public Event Place(DateTime deliveryTime) { return new PlaceEvent { This = this, ExpectedDeliveryTime = deliveryTime }; }
+        public Event Deliver() { return new DeliverEvent { This = this }; }
         #endregion
         
         public Order(Statics config, int seed, string tag = null) : base(config, seed, tag)

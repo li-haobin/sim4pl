@@ -47,6 +47,7 @@
   <ItemGroup>
     <Compile Include="Model\Network.cs" />
     <Compile Include="Model\Order.cs" />
+    <Compile Include="Model\Transporter.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

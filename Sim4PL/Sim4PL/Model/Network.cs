@@ -19,6 +19,11 @@ namespace Sim4PL.Model
             /// </summary>
             public int NNodes { get; set; }
             /// <summary>
+            /// Number of Transporters
+            /// 运输者数量
+            /// </summary>
+            public int NTransporters { get; set; }
+            /// <summary>
             /// Daily rates for transportation demands between pairs of nodes
             /// 每对运输节点之间的需求率
             /// </summary>
@@ -45,7 +50,11 @@ namespace Sim4PL.Model
         #endregion
 
         #region Dynamics
-        public List<Order> Orders { get; } = new List<Order>();
+        public List<Order> OrdersToAssign { get; } = new List<Order>();
+        public HashSet<Order> OrdersAssigned { get; } = new HashSet<Order>();
+        public List<Order> OrdersDelivered { get; } = new List<Order>();
+        public List<Transporter> Transporters { get; } = new List<Transporter>();
+        public double DelayRate { get { return 1.0 * OrdersDelivered.Count(o => o.Delay.TotalDays > 0) / OrdersDelivered.Count; } }
         #endregion
 
         #region Events
@@ -62,15 +71,48 @@ namespace Sim4PL.Model
                     Config.GracePeriod_Mean[o.Origin, o.Destination],
                     Config.GracePeriod_CoeffVar[o.Origin, o.Destination])
                     )));
-                Log("[{0}] -> [{1}] {2}", Order.Config.Origin, Order.Config.Destination, Order.DeliveryTime);
-                This.Orders.Add(Order);
+                Log("Demand Arrive [{0}] -> [{1}] {2}",
+                    Order.Config.Origin, Order.Config.Destination, Order.ExpectedDeliveryTime);
+                This.OrdersToAssign.Add(Order);
+                Execute(new DispatchEvent());
+            }
+        }
+        private class DispatchEvent : InternalEvent
+        {
+            public override void Invoke()
+            {
+                var transList = This.Transporters.Where(t => t.Phase == Transporter.Statics.Phase.Idle).ToList();
+                if (This.OrdersToAssign.Count > 0 && transList.Count > 0)
+                {
+                    Log("Dispatch");
+                    var order = This.OrdersToAssign.First();
+                    var trans = transList.OrderBy(t => Config.TravellingTimes[t.CurrentNode, order.Config.Origin]).First();
+                    Execute(trans.Assign(order));
+                    This.OrdersToAssign.RemoveAt(0);
+                    This.OrdersAssigned.Add(order);
+                    Execute(new DispatchEvent());
+                }
+            }
+        }
+        private class DeliverEvent : InternalEvent
+        {
+            internal Order Order { get; set; }
+            public override void Invoke()
+            {
+                Log("Deliver {0}", Order);
+                This.OrdersAssigned.Remove(Order);
+                This.OrdersDelivered.Add(Order);
+                Execute(Order.Deliver());
+                Execute(new DispatchEvent());                
             }
         }
         #endregion
-        
+
         public Network(Statics config, int seed, string tag = null) : base(config, seed, tag)
         {
             Name = "Network";
+            Display = true;
+
             for (int i = 0; i < Config.NNodes; i++)
                 for (int j = 0; j < Config.NNodes; j++)
                     if (i != j && Config.DemandRates[i, j] > 0)
@@ -92,6 +134,14 @@ namespace Sim4PL.Model
                         Generators.Add(new Tuple<int, int>(i, j), g);
                         InitEvents.Add(g.Start());
                     }
+            Transporters.AddRange(Enumerable.Range(0, Config.NTransporters)
+                .Select(i => new Transporter(new Transporter.Statics(), DefaultRS.Next())
+                {
+                    Display = Display,
+                    Tag = "Transporter#" + i,
+                }));
+            foreach (var t in Transporters) t.OnFinishTransport.Add(order => new DeliverEvent { This = this, Order = order });
+            InitEvents.AddRange(Transporters.Select(t => t.Init(this)));
         }
 
         public override void WarmedUp(DateTime clockTime)
@@ -101,7 +151,12 @@ namespace Sim4PL.Model
 
         public override void WriteToConsole(DateTime? clockTime = null)
         {
-            base.WriteToConsole(clockTime);
+            foreach (var t in Transporters) t.WriteToConsole(clockTime);
+            Console.Write("To Assign: ");
+            foreach (var o in OrdersToAssign) Console.Write("{0} ", o);
+            Console.WriteLine();
+            Console.WriteLine("Delay Rate: {0:F2}%", 100 * DelayRate);
+            Console.WriteLine();
         }
     }
 }
