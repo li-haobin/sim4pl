@@ -32,8 +32,8 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="MathNet.Numerics, Version=3.20.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\MathNet.Numerics.3.20.0\lib\net40\MathNet.Numerics.dll</HintPath>
+    <Reference Include="O2DESNet, Version=2.4.3.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\O2DESNet.2.4.3\lib\net45\O2DESNet.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -54,12 +54,6 @@
   <ItemGroup>
     <None Include="App.config" />
     <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\..\O2DES.Net\O2DESNet\O2DESNet.csproj">
-      <Project>{b956a1f8-1241-4cd7-9d3d-74c97bde3438}</Project>
-      <Name>O2DESNet</Name>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
